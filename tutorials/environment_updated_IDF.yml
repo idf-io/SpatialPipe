@@ -1,0 +1,11 @@
+name: squidpy
+channels:
+-   conda-forge
+dependencies:
+-   python=3.8
+-   jupyterlab
+-   pandas>=1.5.0
+-   napari
+-   pip
+-   pip:
+    -   squidpy>=1.2.0
