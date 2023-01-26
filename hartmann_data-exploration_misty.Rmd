@@ -209,3 +209,8 @@ summary(misty.results)
 ```{r}
 clear_cache()
 ```
+
+
+```{r}
+sessionInfo()
+```
