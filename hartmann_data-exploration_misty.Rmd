@@ -109,7 +109,7 @@ misty.results <- collect_results(results.folder)
 summary(misty.results)
 ```
 
-1. How much can the broader spatial context explain the expression of markers (in contrast to the intraview)?
+## 1. How much can the broader spatial context explain the expression of markers (in contrast to the intraview)?
 
 This can be observed in the gain in R2 (absolute percentage) (or relative percentage of decrease RMSE) of using the multiview model in contrast to the single intraview only model.
 ```{r}
@@ -133,14 +133,14 @@ misty.results$improvements %>%
 
 We can further inspect the significance of the gain in variance explained, by the assigned p-value of improvement based on cross-validation.
 
-# 2.How much do different view components contribute to explaining the expression?
+## 2.How much do different view components contribute to explaining the expression?
 
 ```{r}
 misty.results %>% plot_view_contributions()
 ```
 - These results come from the `coefficients.txt` file and are the normalized values of the intra- and para-view along the analyzed genes.
 
-3.What are the specific relations that can explain the contributions?
+## 3.What are the specific relations that can explain the contributions?
 
 To explain the contributions, we can visualize the importances of markers coming from each view separately as predictors of the expression of all markers.
 
@@ -186,7 +186,7 @@ When interpreting the results and the plots it is important to note that the rel
 ```{r message=FALSE}
 for (point in unique(h5ad$point)) {
   
-  print(paste0("\n---SAMPLE:", point, " ---"))
+  cat(paste0("\n---SAMPLE:", point, " ---"))
   
   sample <- h5ad[, h5ad$point==point]
 
@@ -201,9 +201,42 @@ for (point in unique(h5ad$point)) {
 
 }
 
-misty.results <- collect_results(results.folder)
+misty.results.all <- collect_results(list.dirs(results.folder, recursive=FALSE))
 
-summary(misty.results)
+summary(misty.results.all)
+```
+
+# Visualize the aggregated results over all samples
+
+```{r}
+
+misty.results.all %>% plot_improvement_stats("gain.R2")
+# VS
+misty.results %>% plot_improvement_stats("gain.R2")
+
+
+misty.results.all %>% plot_improvement_stats("gain.RMSE")
+# VS
+misty.results %>% plot_improvement_stats("gain.RMSE")
+
+```
+
+
+
+```{r}
+
+misty.results.all %>% plot_view_contributions()
+# VS
+misty.results %>% plot_view_contributions()
+
+```
+
+```{r}
+
+misty.results.all %>% plot_contrast_heatmap("intra", paste0("para.", radius), cutoff = 0.5)
+# VS
+misty.results %>% plot_contrast_heatmap("intra", paste0("para.", radius), cutoff = 0.5)
+
 ```
 
 ```{r}
