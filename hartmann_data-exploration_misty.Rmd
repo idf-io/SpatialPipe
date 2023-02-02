@@ -106,6 +106,8 @@ misty.views %>% run_misty(results.folder=results.folder, seed=42)
 # Visualize results
 ```{r}
 misty.results <- collect_results(results.folder)
+saveRDS(misty.results, file = "output-data/hartmann/misty_intra-para/hartmann_misty_intra-para_point8.Rds")
+
 summary(misty.results)
 ```
 
@@ -113,6 +115,8 @@ summary(misty.results)
 
 This can be observed in the gain in R2 (absolute percentage) (or relative percentage of decrease RMSE) of using the multiview model in contrast to the single intraview only model.
 ```{r}
+misty.results <- readRDS("output-data/hartmann/misty_intra-para/hartmann_misty_intra-para_point8.Rds")
+
 misty.results %>%
   plot_improvement_stats("gain.R2") %>%
   plot_improvement_stats("gain.RMSE")
@@ -202,6 +206,10 @@ for (point in unique(h5ad$point)) {
 }
 
 misty.results.all <- collect_results(list.dirs(results.folder, recursive=FALSE))
+```
+
+```{r}
+saveRDS(misty.results.all, "output-data/hartmann/misty_intra-para/hartmann_misty_intra-para_all.Rds")
 
 summary(misty.results.all)
 ```
