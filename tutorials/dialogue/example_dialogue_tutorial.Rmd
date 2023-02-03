@@ -1,0 +1,92 @@
+---
+title: "DIALOGUE tutorial"
+author:
+  - name: Ian Dirk Fichtner
+affiliation: 
+  - Heidelberg University, Heidelberg, Germany
+  - DKFZ (German Cancer Research Institute) Division of Computational Genomics and Systems Genetics Prof. Dr. Oliver Stegle, Heidelber, Germany
+email: I.Fichtner@stud.uni-heidelberg.de
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+  toc_depth: 2
+  toc_float: true
+df_print: kable
+code_download: true
+---
+
+--------------------- IN PROCESS --------------------------------
+
+# DIALOGUE tutorial
+
+<https://github.com/livnatje/DIALOGUE/wiki/Example>
+Download dataset from [DIALOGUE github](https://github.com/livnatje/DIALOGUE/blob/master/Data/test.example.rds)
+
+Livnat Jerby edited this page on May 14, 2022
+
+------------------------------------------------------------------------
+
+```{r setup}
+
+library(DIALOGUE)
+
+```
+
+To run a toy example, use the test.example.rds data
+
+```{r}
+
+# Run a toy example
+rA<-readRDS("test.example.rds")
+
+```
+
+rA is a list of three cell types, denoted as A, B, and C.
+
+```{r}
+
+summary(rA)
+
+```
+
+Run DIALOGUE to find multicellular programs (MCPs):
+
+```{r}
+
+R<-DIALOGUE.run(
+    rA = rA,
+    main = "test",
+    k = 2,
+    results.dir = "results/",
+    plot.flag = FALSE,
+    conf = "cellQ",
+    pheno = "pathology",
+    n.genes = 100, 
+    averaging.function = colMedians,
+    p.anova = 0.05,
+    specific.pair = NULL
+    #spatial.flag=TRUE # WTF read help
+)
+```
+
+The output will include the MCPs
+
+```{r}
+
+summary(R)
+
+```
+
+
+> IDF: Plot the results
+
+```{r}
+DIALOGUE.plot(
+  R,
+  results.dir = "results/",
+  pheno = NULL,
+  mark.samples = NULL,
+  metadata = NULL,
+  d = 1,
+  MCPs = 1:R$k["DIALOGUE"]
+)
