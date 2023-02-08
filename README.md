@@ -20,3 +20,8 @@ Focused on MIBI-TOF multiplexed images and segmented single-cell data of colorec
 - MIBI-TOF images have undergone noise removal as described in Keren et al. (2018)
 - Cell Segmentation masks for MIBI-TOF data contain large non-cellular regions that need to be removed during downstream processing (Not corrected in this script)
 - MIBI-TOF derived single-cell data is cell size normalized, arcsinh transformed and percentile normalized and contains manually annotated FlowSOM clustering results
+- Image properties:
+  - 1024 x 1024 pixels
+  - 400 µm x 400 µm
+  - 1100 ± 524 mean spots per image
+  - 1 cell per row
