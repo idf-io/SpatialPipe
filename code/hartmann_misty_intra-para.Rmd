@@ -1,0 +1,314 @@
+---
+title: "MISTy applied to Hartmann-2021 dataset"
+author:
+  - name: Ian Dirk Fichtner
+affiliation: 
+  - Heidelberg University, Heidelberg, Germany
+  - DKFZ (German Cancer Research Institute) Division of Computational Genomics and Systems Genetics Prof. Dr. Oliver Stegle, Heidelber, Germany
+email: I.Fichtner@stud.uni-heidelberg.de
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+  toc_depth: 2
+  toc_float: true
+df_print: kable
+code_download: true
+---
+
+# Misty on colorrectal cancer
+
+### Inspiration from MISTy tutorial
+
+-   [https://saezlab.github.io/mistyR/articles/mistyR.html]()
+
+```{r setup}
+# MISTy
+library(mistyR)
+library(future)
+
+# Data manipulation
+library(zellkonverter)
+library(SingleCellExperiment)
+library(tidyverse)
+library(purrr)
+library(dplyr)
+library(distances)
+
+# Plotting
+library(ggplot2)
+
+# Other
+library(igraph)
+
+plan(multisession)
+
+# Custom wrappers and functions
+source("helper.R")
+```
+
+# Manual input
+
+```{r}
+radius = as.integer(35) # * 1024 / 400
+results.folder = "../output-data/hartmann/misty/"
+
+# Choose a point for runnning MISTy on a specific image as an example
+point_cancer = 23 # Donor 21d3
+point_healthy = 49 # Donor 99c0
+```
+
+# Load dataset
+
+```{r}
+h5ad <- readH5AD("../output-data/hartmann/hartmann_light_4r.h5ad", verbose=TRUE)
+```
+
+
+# MISTy on colorectal carcinoma sample
+
+### Prepare data
+
+```{r}
+ds_pCancer <- h5ad[, h5ad$point==point_cancer]
+
+# Create dataframe
+xi = assay(ds_pCancer) %>% as.matrix() %>% t() %>% data.frame()
+colnames(xi) = rownames(ds_pCancer)
+
+pos <-  data.frame(rows=ds_pCancer$center_rowcoord, cols=ds_pCancer$center_colcoord)
+
+# Sanity check
+ggplot(pos) +
+  geom_point(aes(x=cols, y=rows), color="blue") +
+  coord_fixed()
+
+```
+
+### Savepoint
+
+```{r}
+save.image(paste0(results.folder, "hartmann_misty_data-exploration_0.Rdata"))
+load(paste0(results.folder, "hartmann_misty_data-exploration_0.Rdata"))
+```
+
+### Add intra-view
+
+```{r}
+misty.intra <-  create_initial_view(xi)
+
+summary(misty.intra)
+summary(misty.intra$intraview)
+```
+
+### Add para-view
+
+We consider the effect of all neighbouring cells within a radius to contribute to the cell-cell-communication effects - l = chosen radius - zone of indiference(zoi) = 0
+
+```{r}
+misty.views <- misty.intra %>% add_paraview(pos, l=radius, family="gaussian", zoi=0)
+
+summary(misty.views)
+```
+
+### Train model
+
+```{r}
+misty.views %>% run_misty(results.folder=paste0(results.folder, "intra-para/point", as.character(point_cancer)), seed=42)
+misty.results <- collect_results(paste0(results.folder, "intra-para/point", as.character(point_cancer)))
+summary(misty.results)
+```
+
+### Savepoint
+
+```{r}
+saveRDS(misty.results, file = paste0(results.folder, "intra-para/point", as.character(point_cancer), "/hartmann_misty_intra-para_point", as.character(point_cancer), ".Rds"))
+
+misty.results <- readRDS(paste0(results.folder, "intra-para/point", as.character(point_cancer), "/hartmann_misty_intra-para_point", as.character(point_cancer), ".Rds"))
+```
+
+### Visualize results
+
+#### Improvement
+
+1. How much can the broader spatial context explain the expression of markers (in contrast to the intraview)?
+
+This can be observed in the gain in R2 (absolute percentage) (or relative percentage of decrease RMSE) of using the multiview model in contrast to the single intraview only model.
+
+```{r}
+
+misty.results %>%
+  plot_improvement_stats("gain.R2") # %>%
+  #plot_improvement_stats("gain.RMSE")
+
+```
+
+-   These values are calculated from the `performance.txt` file (differences between views).
+-   Note that there is a difference in gene ranking by gain in R2 and RMSE.
+-   In general, the significant gain in R2 can be interpreted as the following:
+
+```{r}
+misty.results$improvements %>%
+  filter(measure == "p.R2") %>%
+  group_by(target) %>% 
+  summarize(mean.p = mean(value)) %>%
+  arrange(mean.p)
+```
+
+"We can better explain the expression of marker X, when we consider additional views, other than the intrinsic view."
+
+We can further inspect the significance of the gain in variance explained, by the assigned p-value of improvement based on cross-validation.
+
+#### Coefficients
+
+2.How much do different view components contribute to explaining the expression?
+
+```{r}
+misty.results %>% plot_view_contributions()
+```
+
+-   These results come from the `coefficients.txt` file and are the normalized values of the intra- and para-view along the analyzed genes.
+
+
+#### Importances
+
+3.What are the specific relations that can explain the contributions?
+
+To explain the contributions, we can visualize the importances of markers coming from each view separately as predictors of the expression of all markers.
+
+First, the intraview importances.
+
+```{r}
+misty.results %>% plot_interaction_heatmap(view = "intra", cutoff = 0.8)
+```
+
+These importances are associated to the relationship between markers in the same cell. As we didn't use the information about the cell types in any way during the process of modeling the significant interactions that we see in the heatmap may come from any of the cell types.
+
+Second, the paraview importances.
+
+```{r}
+misty.results %>% plot_interaction_heatmap(view = paste0("para.", radius), cutoff = 0.5)
+```
+
+These importances are associated to the relationship between markers in the cell and markers in the broader structure (controlled by our parameter l).
+
+We can observe that some interactions in the paraview might be redundant, i.e., they are also found to be important in the intraview. To focus on the interactions coming from the paraview only we can plot the contrast between these results.
+
+```{r}
+misty.results %>% plot_contrast_heatmap("intra", paste0("para.", radius), cutoff = 0.5)
+```
+
+-   The previous three plots' values are found in a combinatorial fashion within the `importances_feature_view.txt` files.
+
+Futhermore, since the predictor and target markers in both views are the same, we can plot the interaction communities that can be extracted from the estimated interaction pairs from the intraview
+
+> Based on the Louvian community detection algorithm.
+
+```{r}
+misty.results %>% plot_interaction_communities("intra")
+```
+
+and the paraview.
+
+```{r}
+misty.results %>% plot_interaction_communities(paste0("para.", radius), cutoff = 0.5)
+```
+
+"In particular, the gain for markers CD68, ki67, and SMA were found to be the highest, suggesting that proliferation, presence, or absence of CD68 and changes in vascularization in different grades and clinical subtypes are significantly affected by the change in regulation as a result of intercellular interactions." - Tanevski2022
+
+When interpreting the results and the plots it is important to note that the relationships captured in the importances are not to assumed or interpreted as linear or casual. Furthermore, the estimated importance of a single predictor - marker pair should not be interpreted in isolation but in the context of the other predictors, since training MISTy models is multivariate predictive task.
+
+# Run MISTy on all points
+
+### Run
+
+```{r message=FALSE}
+
+points = unique(h5ad$point)
+
+for (point in points[! points %in% c(10, 20, 50, 30, 34, 19, 13, 52, 32, 17, 1, 18, 4)]) {
+  
+  cat(paste0("\n---SAMPLE:", point, " ---"))
+  c=append(c, point)
+  sample <- h5ad[, h5ad$point==point]
+
+  # Create dataframe
+  sample.xi = assay(sample) %>% 
+      as.matrix() %>% 
+      t() %>% 
+      data.frame()
+  colnames(sample.xi) = rownames(sample)
+
+  sample.pos <- data.frame(rows=sample$center_rowcoord, cols=sample$center_colcoord)
+  
+  # Add intra- and para-view + run
+  create_initial_view(sample.xi) %>% 
+      add_paraview(sample.pos, l=radius, family="gaussian", zoi=0) %>% 
+      run_misty(paste0(results.folder, "intra-para/point", point))
+  
+misty.results.all <- collect_results(list.dirs(paste0(results.folder, "intra-para"), recursive=FALSE))
+summary(misty.results.all)
+}
+```
+
+### Savepoint
+
+```{r}
+saveRDS(misty.results.all, paste0(results.folder, "intra-para/hartmann_misty_intra-para_all.Rds"))
+misty.results.all <- readRDS(paste0(results.folder, "intra-para/hartmann_misty_intra-para_all.Rds"))
+```
+
+### Visualize the aggregated results over all samples
+
+#### Improvements
+
+```{r}
+misty.results.all %>% plot_improvement_stats("gain.R2")
+# misty.results.all %>% plot_improvement_stats("gain.RMSE")
+```
+
+#### Coefficients
+
+```{r}
+misty.results.all %>% plot_view_contributions()
+```
+
+#### Importances
+
+```{r}
+misty.results.all %>% plot_contrast_heatmap("intra", paste0("para.", radius), cutoff = 0.5)
+```
+
+
+# MISTy on a healthy sample
+
+```{R}
+misty.results.healthy <- collect_results(paste0(results.folder, "intra-para/point", as.character(point_healthy)))
+summary(misty.results.healthy)
+```
+
+### Improvements
+
+```{r}
+misty.results.healthy %>% plot_improvement_stats("gain.R2")
+```
+
+### View contributions
+
+```{r}
+misty.results.healthy %>% plot_view_contributions()
+```
+
+### Importances
+
+```{r}
+misty.results.healthy %>% plot_contrast_heatmap("intra", paste0("para.", radius), cutoff = 0.5)
+```
+
+# Save workspace
+
+```{R}
+save.image(paste0(results.folder, "hartmann_misty_data-exploration_1.Rdata"))
+load(paste0(results.folder, "hartmann_misty_data-exploration_1.Rdata"))
+
+sessionInfo()
+```

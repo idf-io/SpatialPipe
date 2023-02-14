@@ -1,0 +1,362 @@
+---
+title: "MISTy applied to Hartmann-2021 dataset"
+author:
+  - name: Ian Dirk Fichtner
+affiliation: 
+  - Heidelberg University, Heidelberg, Germany
+  - DKFZ (German Cancer Research Institute) Division of Computational Genomics and Systems Genetics Prof. Dr. Oliver Stegle, Heidelber, Germany
+email: I.Fichtner@stud.uni-heidelberg.de
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+  toc_depth: 2
+  toc_float: true
+df_print: kable
+code_download: true
+---
+
+# Misty on colorrectal cancer via cell-type decomposition
+
+### Inspiration from MISTy tutorial
+
+-   [https://saezlab.github.io/mistyR/articles/mistyR.html]()
+-   Phillip's work (Saezgroup), can't find link anymore
+
+```{r setup}
+# MISTy
+library(mistyR)
+library(future)
+
+# Data manipulation
+library(zellkonverter)
+library(SingleCellExperiment)
+library(tidyverse)
+library(purrr)
+library(dplyr)
+library(distances)
+
+# Plotting
+library(ggplot2)
+
+# Other
+library(igraph)
+
+plan(multisession)
+
+# Custom wrappers and functions
+source("helper.R")
+```
+
+# Manual input
+
+```{r}
+radius = as.integer(35) # * 1024 / 400
+results.folder = "../output-data/hartmann/misty/"
+
+# Choose a point for runnning MISTy on a specific image as an example
+point_cancer = 23
+point_healthy = 49
+```
+
+# Load dataset
+
+```{r}
+h5ad <- readH5AD("../output-data/hartmann/hartmann_light_4r.h5ad", verbose=TRUE)
+```
+
+# Run MISTy custom cell-type function on all samples
+
+```{r message=FALSE}
+
+points = unique(h5ad$point)
+c=c()
+
+for (point in points[! points %in% c(10, 20, 50, 30, 34, 19, 13, 52, 32, 17, 1, 18, 4)]) {
+  
+  cat(paste0("\n---SAMPLE:", point, " ---"))
+  c=append(c, point)
+    
+  ds <- h5ad[, h5ad$point==point]
+  
+  ds$Cluster %>% as.data.frame()
+  
+  # One hot encode matrix
+  oh <- model.matrix(~ ds$Cluster - 1)
+  colnames(oh) <- ds$Cluster %>% unique()
+
+  pos <- data.frame(rows=ds$center_rowcoord, cols=ds$center_colcoord)
+  
+  # Add intra- and para-view + run
+  create_initial_view(as.data.frame(oh)) %>% 
+      add_paraview(pos, l=radius, family="constant", zoi=0) %>% 
+      run_misty(paste0(results.folder, "cell-types/point", point), seed = 42, bypass.intra=TRUE)
+
+  
+misty.results.cancer <- collect_results(paste0(results.folder, "cell-types/point", as.character(point_cancer)))
+misty.results.healthy <- collect_results(paste0(results.folder, "cell-types/point", as.character(point_healthy)))
+misty.results.all <- collect_results(list.dirs(paste0(results.folder, "cell-types/"), recursive=FALSE))
+
+summary(misty.results.all)
+}
+```
+
+# Visualize
+
+### Improvements
+
+```{R}
+misty.results.cancer %>% plot_improvement_stats("gain.R2")
+# VS
+misty.results.healthy %>% plot_improvement_stats("gain.R2")
+# VS
+misty.results.all %>% plot_improvement_stats("gain.R2")
+```
+
+### Contributions
+
+```{R}
+misty.results.cancer %>% plot_view_contributions()
+# VS
+misty.results.healthy %>% plot_view_contributions()
+# VS
+misty.results.all %>% plot_view_contributions()
+```
+### Importances
+
+```{R}
+misty.results.cancer %>% plot_interaction_heatmap(paste0("para.", radius))
+# VS
+misty.results.healthy %>% plot_interaction_heatmap(paste0("para.", radius))
+# VS
+misty.results.all %>% plot_interaction_heatmap(paste0("para.", radius))
+```
+# Save workspace
+
+```{R}
+save.image(paste0(results.folder, "cell-types/hartmann_misty_cell-types_session.Rdata"))
+load(paste0(results.folder, "cell-types/hartmann_misty_cell-types_session.Rdata"))
+
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ------------------------------ EXPERIMENTAL ---------------------------------------------#
+
+
+```{r}
+
+create_initial_view(as.data.frame(oh)) %>% add_paraview(pos, l=radius, family="gaussian", zoi=0) %>% run_misty(results.folder = paste0(results.folder, "cell-types/point", point_cancer), seed=42, bypass.intra = TRUE)
+
+misty.results.ct.p8 <- collect_results("output-data/hartmann/misty_cell-types_point8/")
+
+summary(misty.results.ct.p8)
+summary(misty.results.ct.p8$intraview) %>% cat()
+
+saveRDS(misty.results.ct.p8, paste0(results.folder, "cell-types/point", point_cancer) "output-data/hartmann/misty_cell-types_point8/hartmann_misty_cell-types_point8.Rds")
+misty.results.ct.p8 <- readRDS("output-data/hartmann/misty_cell-types_point8/hartmann_misty_cell-types_point8.Rds")
+
+```
+
+```{r}
+
+misty.results.all %>% plot_improvement_stats("gain.R2") %>% plot_improvement_stats("gain.RMSE")
+
+```
+
+```{r}
+
+misty.results.ct.p8 %>% plot_view_contributions()
+
+```
+
+```{r}
+
+misty.results.ct.p8 %>% plot_interaction_heatmap(paste0("para.", radius), cutoff = 0.5, clean = TRUE)
+
+```
+
+# Runnning MISTy via cell type decomposition (input) and features (para-view)
+
+```{r}
+
+f.view <- create_view("features", xi, "f")
+
+create_initial_view(as.data.frame(oh)) %>% 
+    add_paraview_custom(extra.views =  f.view, positions = pos, l = radius, zoi = 0) %>% 
+    run_misty(
+        results.folder = "output-data/hartmann/misty_cell-types-features_point8/",
+        seed=42, 
+        bypass.intra = TRUE
+    )
+
+misty.results.ctf.p8 <- collect_results("output-data/hartmann/misty_cell-types-features_point8/")
+
+saveRDS(misty.results.ctf.p8, "output-data/hartmann/misty_cell-types_point8/hartmann_misty_cell-types-features_point8.Rds")
+
+summary(misty.results.ctf.p8)
+summary(misty.results.ctf.p8$intraview) %>% cat()
+
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_improvement_stats("gain.R2") %>% plot_improvement_stats("gain.RMSE")
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_view_contributions()
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_interaction_heatmap(paste0("para.", radius), cutoff = 0.5, clean = TRUE)
+
+```
+
+# Runnning MISTy via cell-type decomposition (input and para-view) and features (para-view)
+
+Essentially the same as the previous step, but we define the para-view as a concatenation of 1-hot encoded cell-types and their features.
+
+```{r}
+
+ohf.view <- create_view("featuree", xi, "ohf")
+
+create_initial_view(as.data.frame(oh)) %>% 
+    add_paraview_custom(extra.views =  ohf.view, positions = pos, l = radius, zoi = 0) %>% 
+    run_misty(
+        results.folder = "output-data/hartmann/misty_cell-types-features_point8/",
+        seed=42, 
+        bypass.intra = TRUE
+    )
+
+misty.results.ctf.p8 <- collect_results("output-data/hartmann/misty_cell-types-features_point8/")
+
+saveRDS(misty.results.ctf.p8, "output-data/hartmann/misty_cell-types_point8/hartmann_misty_cell-types-features_point8.Rds")
+
+summary(misty.results.ctf.p8)
+summary(misty.results.ctf.p8$intraview) %>% cat()
+
+
+```
+
+```{r}
+
+ohf.view <- create_view("onehotfeatures", cbind(oh, xi), "ohf")
+
+create_initial_view(as.data.frame(oh)) %>% 
+    add_paraview_custom(extra.views =  ohf.view, positions = pos, l = radius, zoi = 0) %>% 
+    run_misty(
+        results.folder = "output-data/hartmann/misty_cell-types-features_concat_point8/",
+        seed=42, 
+        bypass.intra = TRUE
+    )
+
+misty.results.ctohf.p8 <- collect_results("output-data/hartmann/misty_cell-types-features_concat_point8/")
+
+saveRDS(misty.results.ctohf.p8, "output-data/hartmann/misty_cell-types_point8/hartmann_misty_cell-types-features_concat_point8.Rds")
+
+summary(misty.results.ctohf.p8)
+summary(misty.results.ctohf.p8$intraview) %>% cat()
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_improvement_stats("gain.R2") %>% plot_improvement_stats("gain.RMSE")
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_view_contributions()
+
+```
+
+```{r}
+
+misty.results.ctohf.p8 %>% plot_interaction_heatmap(paste0("para.", radius), cutoff = 0.5, clean = TRUE)
+
+```
+
+```{r}
+clear_cache()
+```
+
+```{r}
+sessionInfo()
+```

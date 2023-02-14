@@ -13,6 +13,9 @@ dependencies:
 -   scanpy
 -   scanorama
 -   napari
+-   matplotlib<3.7
+-   matplotlib-venn
+-   seaborn
 -   r-essentials
 -   pip
 -   pip:
