@@ -7,6 +7,9 @@ image: https://i.imgur.com/J57ANsD.jpg
 
 # Applying NCEM and MISTy on MIBI-TOF colorrectal cancer data as a primer for spatial cell-cell communication benchmarking
 
+[![hackmd-github-sync-badge](https://hackmd.io/RrMs9v_pQxa2XLOZicSJDA/badge)](https://hackmd.io/RrMs9v_pQxa2XLOZicSJDA)
+
+
 ![](https://i.imgur.com/J57ANsD.jpg =400x400)
 
 # Table of contents
