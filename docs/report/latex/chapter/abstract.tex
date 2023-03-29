@@ -1,0 +1,18 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+
+Prior to the emergence of spatial-omics technologies, cell-cell communication (CCC) methods relied on prior knowledge about interacting features between cells. The measure of correlation between putative ligand-receptor interactions are a common approach to this end. Novel spatially-resolved omics technologies like MIBI-TOF and MERFISH enable the measurement and characterization of feature patterns in space. Novel CCC methods followed which attempt to leverage the spatial dimension. These methods face four main challenges: (1) lack of a consensus on how to define and approach CCC, (2) vast diversity of spatial-omics technologies with different output types and properties, (3) high level of artifacts and uncertainty in upstream steps and (4) lack of ground truth for validation.
+
+In the present study, the aim was to set the groundwork towards benchmarking spatially-resolved CCC methods by applying recent spatial CCC methods NCEM and MISTy to a colorectal tumour dataset. We analyzed their potential weaknesses and attempted to reach a comparable output.
+
+The linear NCEM model was applied to the dataset and the interaction term tensor was summarised via two different transformations to achieve a cell-type level sender-receiver effect matrix. Furthermore, erroneous cell-type annotation due to upstream effects was simulated via shuffling the annotations of varying fractions of randomly selected cells. The results showed a high sensitivity towards cell-type annotation as shuffling 10% of the cells' cell-types reached similar explained variance ($R^2$) values to 100% annotation randomization.
+
+MISTy was applied by defining the "intra-view" and a "para-view". As opposed to NCEM, MISTy doesn't model batch and conditions directly; it is run on an individual sample basis and the results are summarized via the mean and standard deviation. When examining the improvement of explained variance ($R^2$) attributed to the "para-view", high standard deviation for all features was observed. This shows the necessity of better sample integration or the assessment of experimental conditions for intermediate step interpretability.
+
+MISTy was customized to yield a similar output to NCEM. However, predictor-target importances were only obtained on the individual sample level.
+
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+

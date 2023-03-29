@@ -1,0 +1,194 @@
+\documentclass[parskip]{scrreprt}
+
+%%%%%%%%%%%%%%%%%%% Pakete %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Sprache und Eingabecodierung %%%
+\usepackage[greek, ngerman, main=english]{babel}		
+% Sprachpaket greek damit griechische Buchstaben (z.B. im Literaturverzeichnis) keine Probleme machen mit main= die standardsprache für das Dokument festlegen, damit werden automatische Überschriften wie Inhaltsverzeichnis/Table of Contents in der richtigen Sprache gesetzt
+
+\usepackage[utf8]{inputenc}							% codierung damit man Umlaute direkt schreiben kann
+\usepackage[T1]{fontenc}							% auch was mit codierung zu tun
+
+%%% Schriftart und Form %%%
+\usepackage{lmodern}								% Schriftart LatinModern Vektorisiert für schöneres PDF
+\usepackage[onehalfspacing]{setspace}				% Korrekter Zeilenabstand nach IPMB Vorgabe
+\usepackage[left=2.50cm, right=2.50cm, top=2.50cm, bottom=2.50cm]{geometry}	% Seitenränder nach Vorgabe von IPMB
+\usepackage[autooneside=true, headsepline]{scrlayer-scrpage} % schönere Kopfzeile
+
+%%% Chemie, Biologie, Mathematik %%%
+\usepackage{dnaseq}									% Für einzelne Sequenzen
+\usepackage{texshade}								% Für alignierte Sequenzen 
+%%%%%%%%%%%%%%%%%% !!! ACHTUNG !!! dnaseq vor texshade vor mhchem vor graphicx einbinden !!! ACHTUNG !!! %%%%%%%%%%%%%%%%%%
+
+\usepackage[version=4]{mhchem}						% Chemische Formeln
+\usepackage{siunitx}								% SI Einheiten
+\usepackage{amsmath}								% für schönere Formeln
+\usepackage{listings}
+
+%%% Tabellen und Abbildungen %%%
+\usepackage{array}
+\usepackage{tabulary}
+\usepackage{tabularray}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{longtable}								% Tabelle mit Seitenumbrüchen
+\usepackage{booktabs} 								% für schöne Linien in Tabellen
+\usepackage{multirow}								% Mehrere Reihen in einer Tabelle zusammenfassen
+\usepackage{rotating}								% für Tabellen im Querformat
+\usepackage{subfigure}								% für mehrere Unterabbildungen in einer Abbildung
+\usepackage{graphicx}								% für Größenänderungen für Grafiken
+\graphicspath{ {./figures/} }
+%\usepackage{float}									% um floats (z.B. Bilder) an Ort und Stelle zu fixieren mit [H]
+
+
+\usepackage{caption}
+\usepackage{threeparttable}
+\usepackage[labelfont=bf,font={footnotesize}]{caption}
+
+
+\usepackage{acronym}								% Abkürzungen
+\usepackage{bib/cell}									% Zitierstil Cell
+
+
+\usepackage{lipsum}									% Blindtext zum Testen
+
+\usepackage[hidelinks]{hyperref}					
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+	citecolor=black,
+    }
+
+\urlstyle{same}
+% Hyperlinks [hidelinks] um linkboxen zu deaktivieren (möglichst zum Schluss einbinden, da es sich anderen Paketen anpasst)
+
+%%%%%%%%%%%%%%%%%%% KOMA-Script Einstellungen %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{scrhack}								% Anpassung von anderen Paketen an KOMA-Script zur besseren Kompatibilität. Zuletzt Einbinden!
+
+\emergencystretch=50pt								% Vergrößert Wortzwischenraum notfalls, wenn sonst die Zeile überläuft
+
+\clubpenalty = 10000								% Verhindern von Schusterjungen
+\widowpenalty = 10000								% Hurenkindern
+\displaywidowpenalty = 10000						% und vor Formeln
+
+% Einstellen der Kopfzeile
+\clearscrheadfoot									% Ohne Voreinstellungen beginnen
+\automark{chapter}									% automatisches Aktualisieren von sections
+\ihead{\headmark}									% innerer Kopf: aktuelle section
+\ohead{\pagemark}									% äußerer Kopf: Seitenzahl
+
+
+
+%%%%%%%%%%%%%%%%%%% Schriftart für Überschriften einstellen %%%%%%%%%%%%%%%
+\setkomafont{title}{\sffamily}						% Festsetzen der Überschriftart auf Sans Serif
+\setkomafont{disposition}{\usekomafont{title}}		% Festsetzen der weiteren Unterüberschriften auf Sans Serif
+\setkomafont{author}{\usekomafont{title}}
+\setkomafont{date}{\usekomafont{title}}
+\setkomafont{caption}{\sffamily\small}					% Festsetzen der Captions auf Sans Serif klein
+\setkomafont{captionlabel}{\usekomafont{caption}\bfseries\small}	% Festsetzen der Captionlabels auf Sans Serif Fett klein
+
+%%%%%%%%%%%%%%%%%%% Definitionen für Titelseite %%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\workauthor}{Ian Dirk Fichtner}
+\newcommand{\worktitle}{ Applying NCEM and MISTy on MIBI-TOF colorrectal cancer data as a primer for spatial cell-cell communication benchmarking}
+\newcommand{\studentid}{3404046}
+\newcommand{\birthplace}{Santa Fé de Bogotá, Colombia}
+\newcommand{\workplace}{Heidelberg}
+\newcommand{\workstart}{07.~November~2022}
+\newcommand{\workstop}{15.~February~2023}
+\newcommand{\submissiondate}{\today}
+\newcommand{\institute}{German Cancer Research Center}
+\newcommand{\department}{Computational Genomics and Systems Genetics}
+\newcommand{\supervisor}{Elyas Heidari}
+\newcommand{\headrg}{Prof. Dr. Oliver Stegle}
+\newcommand{\worktype}{Internship report}
+
+%%%%%%%%%%%%%%%%%%% Paketeinstellungen %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\lstset{							% Einstellungen für listings
+	frame=tb,						% Horizontale Linien oben und unten
+	numbers=left,					% Zeilennummern auf der linken Seite
+	basicstyle=\ttfamily\small,		% Schrift Monospace klein
+%	language=,						% Festlegen der Programmiersprache
+	tabsize=2,						% Tabs sind 2 Leerzeichen breit
+}
+
+\sisetup{
+	per-mode=fraction,				% macht Brüche bei Einheiten
+	output-decimal-marker={,},		% gibt "," als Dezimaltrennzeichen aus
+	separate-uncertainty,			% Unsicherheit mit +-
+	table-align-uncertainty = true,	% Ausrichtung am +- in Tabellen
+}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%% Titlepage für Bachelor/Masterarbeit %%%%%%%%%%%%%%%%%%%
+\begin{titlepage}
+	\centering
+	{\Large Ruprecht-Karls-Universität Heidelberg\\
+			Fakultät für Biowissenschaften\\
+			Bachelorstudiengang Molekulare Biotechnologie\\}
+	
+	{\usekomafont{title}
+		{\vspace{\stretch{2}}\Huge \worktitle{}}}
+	
+	\vspace{\stretch{2}}
+	{\Large \worktype{}}
+	
+	\vspace{\stretch{2}}
+	
+	{\large
+	\begin{tabular}{r l}
+		Autor &\workauthor{}\\
+		Supervisor &\supervisor{}\\
+		Institute &\institute{}\\
+		Department &\department{}\\
+		Head of research group &\headrg{}\\
+	\end{tabular}
+	}
+	\vspace{1cm}
+
+	\workstart \quad- \workstop
+	\vspace{1cm}
+	
+	------------------------------------------------------
+
+	\submissiondate, Heidelberg (Signature)
+		
+	\vspace{\stretch{2}}
+	
+	
+	
+\end{titlepage}
+%%%%%%%%%%%%%%%%%%% /Titlepage für Bachelor/Masterarbeit %%%%%%%%%%%%%%%%%%
+
+\input{chapter/declaration}
+\tableofcontents
+\input{chapter/abstract}
+
+%\listoffigures
+%\addcontentsline{toc}{chapter}{List of Figures}
+%\listoftables
+%\addcontentsline{toc}{chapter}{List of Tables}
+
+
+\input{chapter/abbreviations}
+\setcounter{secnumdepth}{-1}
+\input{chapter/introduction}
+\input{chapter/mandm}
+\input{chapter/results}
+\input{chapter/discussion}
+%\input{chapter/outlook}
+
+
+\bibliographystyle{bib/cell}
+\bibliography{bib/bibfile}
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\input{chapter/supplementary}
+
+
+\end{document}
